@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "b": "minecraft:bone",
+    "c": "minecraft:cookie",
+    "l": "minecraft:leather",
+    "s": "minecraft:string",
+    "w": "minecraft:wheat"
+  },
+  "pattern": [
+    "sls",
+    "bcb",
+    " w "
+  ],
+  "result": {
+    "count": 1,
+    "id": "playercollars:reward_treat_pouch"
+  }
+}

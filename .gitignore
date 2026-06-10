@@ -1,0 +1,62 @@
+# gradle
+
+.gradle/
+build/
+out/
+classes/
+remappedSrc/
+
+# eclipse
+
+*.launch
+
+# idea
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+
+# macos
+
+*.DS_Store
+.DS_Store
+Thumbs.db
+
+# fabric
+
+run/
+src/main/generated/.cache
+
+# local runtime output
+
+logs/
+crash-reports/
+*.log
+
+# local analysis and temporary files
+
+.analysis_tmp/
+tmp/
+temp/
+*.tmp
+
+# local release/build artifacts
+
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+build/libs/*.jar
+/*.jar
+
+# private local configuration
+
+.env
+.env.*

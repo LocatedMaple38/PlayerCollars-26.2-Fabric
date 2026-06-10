@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "playercollars:regeneration",
+    "playercollars:short_leash",
+    "playercollars:thorns",
+    "playercollars:clicker",
+    "playercollars:laser_reach"
+  ]
+}

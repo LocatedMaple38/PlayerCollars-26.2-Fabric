@@ -1,0 +1,18 @@
+{
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_25",
+  "package": "org.jlortiz.playercollars.mixin",
+  "required": true,
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "BoneItemMixin",
+    "LivingEntityMixin",
+    "PlayerEntityMixin",
+    "ServerPlayerEntityMixin"
+  ],
+  "client": [
+    "ClientPlayerInteractionManagerMixin"
+  ]
+}
