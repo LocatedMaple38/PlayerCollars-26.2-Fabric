@@ -51,12 +51,11 @@ public class RecipeDataGenerator extends FabricRecipeProvider {
                         .unlockedBy("has_paws", has(PlayerCollarsMod.PAWS_TAG))
                         .save(output);
                 shapeless(RecipeCategory.TOOLS, PlayerCollarsMod.COLLAR_LOCKER_ITEM)
-                        .requires(ConventionalItemTags.REDSTONE_DUSTS)
-                        .requires(Items.CHAIN)
-                        .requires(Items.CHAIN)
+                        .requires(Items.REDSTONE)
+                        .requires(Items.IRON_INGOT)
+                        .requires(Items.IRON_INGOT)
                         .requires(Items.IRON_BARS)
-                        .unlockedBy(getHasName(PlayerCollarsMod.DEED_OF_OWNERSHIP_STAMPED),
-                                has(PlayerCollarsMod.DEED_OF_OWNERSHIP_STAMPED))
+                        .unlockedBy(getHasName(Items.IRON_BARS), has(Items.IRON_BARS))
                         .save(output);
                 shapeless(RecipeCategory.MISC, PlayerCollarsMod.DEED_OF_OWNERSHIP)
                         .requires(Items.PAPER)

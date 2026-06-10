@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_stamped_deed_of_ownership": {
+    "has_iron_bars": {
       "conditions": {
         "items": [
           {
-            "items": "playercollars:stamped_deed_of_ownership"
+            "items": "minecraft:iron_bars"
           }
         ]
       },
@@ -21,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_stamped_deed_of_ownership"
+      "has_iron_bars"
     ]
   ],
   "rewards": {

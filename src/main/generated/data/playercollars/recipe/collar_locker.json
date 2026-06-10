@@ -2,9 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    "#c:dusts/redstone",
-    "minecraft:chain",
-    "minecraft:chain",
+    "minecraft:redstone",
+    "minecraft:iron_ingot",
+    "minecraft:iron_ingot",
     "minecraft:iron_bars"
   ],
   "result": {
