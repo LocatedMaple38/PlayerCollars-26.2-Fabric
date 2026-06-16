@@ -7,18 +7,15 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.MenuScreens;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
 import org.jlortiz.playercollars.ClientHooks;
 import org.jlortiz.playercollars.EquippedTrinkets;
 import org.jlortiz.playercollars.PlayerCollarsMod;
 import org.jlortiz.playercollars.client.screen.CollarDyeScreen;
 import org.jlortiz.playercollars.client.screen.DeedItemScreen;
-import org.jlortiz.playercollars.client.screen.PawsConfigScreen;
-import org.jlortiz.playercollars.client.screen.PawsSelectScreen;
+import org.jlortiz.playercollars.client.screen.PetControlScreen;
 import org.jlortiz.playercollars.item.FootPawsItem;
 import org.jlortiz.playercollars.network.PacketLookAtLerped;
+import org.jlortiz.playercollars.network.PacketOpenPetControl;
 
 @Environment(EnvType.CLIENT)
 public class RegisterClient implements ClientModInitializer {
@@ -28,8 +25,6 @@ public class RegisterClient implements ClientModInitializer {
                 Minecraft.getInstance().setScreen(new CollarDyeScreen(stack, playerId)));
         ClientHooks.setDeedScreenOpener((stack, player) ->
                 Minecraft.getInstance().setScreen(new DeedItemScreen(stack, player)));
-        ClientHooks.setPawsSelectScreenOpener(player ->
-                Minecraft.getInstance().setScreen(new PawsSelectScreen(player)));
         ClientHooks.setInvisibleFenceParticleFilter(() -> {
             Minecraft client = Minecraft.getInstance();
             return client.player != null && EquippedTrinkets.hasEquipped(client.player, (x) -> x.is(PlayerCollarsMod.COLLAR_TAG));
@@ -46,9 +41,16 @@ public class RegisterClient implements ClientModInitializer {
             TrinketRendererRegistry.registerRenderer(p, renderer2);
         ClientPlayNetworking.registerGlobalReceiver(PacketLookAtLerped.ID, (payload, context) ->
                 context.client().execute(() -> RotationLerpHandler.beginClickTurn(payload.vec())));
+        ClientPlayNetworking.registerGlobalReceiver(PacketOpenPetControl.ID, (payload, context) ->
+                context.client().execute(() -> {
+                    Minecraft client = context.client();
+                    if (client.screen instanceof PetControlScreen screen && screen.isFor(payload.petId())) {
+                        screen.update(payload);
+                    } else {
+                        client.setScreen(new PetControlScreen(payload));
+                    }
+                }));
         LevelRenderEvents.END_MAIN.register(RotationLerpHandler::turnTowardsClick);
-        MenuScreens.register(PlayerCollarsMod.PAWS_BLOCK_CONFIG_SCREEN_HANDLER, PawsConfigScreen<Block>::new);
-        MenuScreens.register(PlayerCollarsMod.PAWS_ITEM_CONFIG_SCREEN_HANDLER, PawsConfigScreen<Item>::new);
         LaserRenderer.register();
     }
 }

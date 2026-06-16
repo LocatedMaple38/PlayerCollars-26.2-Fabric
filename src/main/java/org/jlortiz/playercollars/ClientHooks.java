@@ -9,7 +9,6 @@ import java.util.UUID;
 public final class ClientHooks {
     private static CollarDyeScreenOpener collarDyeScreenOpener = (stack, playerId) -> {};
     private static DeedScreenOpener deedScreenOpener = (stack, player) -> {};
-    private static PawsSelectScreenOpener pawsSelectScreenOpener = player -> {};
     private static InvisibleFenceParticleFilter invisibleFenceParticleFilter = () -> false;
 
     private ClientHooks() {
@@ -31,14 +30,6 @@ public final class ClientHooks {
         deedScreenOpener.open(stack, player);
     }
 
-    public static void setPawsSelectScreenOpener(PawsSelectScreenOpener opener) {
-        pawsSelectScreenOpener = opener;
-    }
-
-    public static void openPawsSelectScreen(Player player) {
-        pawsSelectScreenOpener.open(player);
-    }
-
     public static void setInvisibleFenceParticleFilter(InvisibleFenceParticleFilter filter) {
         invisibleFenceParticleFilter = filter;
     }
@@ -55,11 +46,6 @@ public final class ClientHooks {
     @FunctionalInterface
     public interface DeedScreenOpener {
         void open(ItemStack stack, Entity player);
-    }
-
-    @FunctionalInterface
-    public interface PawsSelectScreenOpener {
-        void open(Player player);
     }
 
     @FunctionalInterface

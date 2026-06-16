@@ -10,9 +10,11 @@
     "BoneItemMixin",
     "LivingEntityMixin",
     "PlayerEntityMixin",
+    "ServerGamePacketListenerImplMixin",
     "ServerPlayerEntityMixin"
   ],
   "client": [
-    "ClientPlayerInteractionManagerMixin"
+    "ClientPlayerInteractionManagerMixin",
+    "KeyboardInputMixin"
   ]
 }

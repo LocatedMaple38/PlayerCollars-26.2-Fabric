@@ -1,13 +1,10 @@
 package org.jlortiz.playercollars;
 
-import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.Encoder;
-import com.mojang.serialization.codecs.EitherCodec;
-import com.mojang.serialization.codecs.ListCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.wispforest.accessories.api.slot.SlotEntryReference;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -18,7 +15,6 @@ import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
-import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -43,6 +39,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.*;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -82,7 +80,6 @@ import org.jlortiz.playercollars.leash.LeashImpl;
 import org.jlortiz.playercollars.leash.LeashProxyEntity;
 import org.jlortiz.playercollars.network.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
@@ -133,37 +130,30 @@ public class PlayerCollarsMod implements ModInitializer {
 			BuiltInRegistries.DATA_COMPONENT_TYPE,
 			Identifier.fromNamespaceAndPath(MOD_ID, "forced_crawl_component"),
 			DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
-	public static final DataComponentType<Boolean> DIET_CONTROL_COMPONENT_TYPE = Registry.register(
+	public static final DataComponentType<SpeechMode> SPEECH_MODE_COMPONENT_TYPE = Registry.register(
 			BuiltInRegistries.DATA_COMPONENT_TYPE,
-			Identifier.fromNamespaceAndPath(MOD_ID, "diet_control_component"),
-			DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
+			Identifier.fromNamespaceAndPath(MOD_ID, "speech_mode_component"),
+			DataComponentType.<SpeechMode>builder()
+					.persistent(SpeechMode.CODEC)
+					.networkSynchronized(ByteBufCodecs.idMapper(SpeechMode::byId, SpeechMode::ordinal))
+					.build());
+	public static final DataComponentType<Boolean> COMMANDS_BLOCKED_COMPONENT_TYPE = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			Identifier.fromNamespaceAndPath(MOD_ID, "commands_blocked_component"),
+			DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL).build());
+	public static final DataComponentType<Boolean> VISION_OBSCURED_COMPONENT_TYPE = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			Identifier.fromNamespaceAndPath(MOD_ID, "vision_obscured_component"),
+			DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL).build());
+	public static final DataComponentType<Boolean> MOVEMENT_RESTRAINED_COMPONENT_TYPE = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			Identifier.fromNamespaceAndPath(MOD_ID, "movement_restrained_component"),
+			DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL).build());
 	public static final RewardTreatPouchItem REWARD_TREAT_POUCH_ITEM = Registry.register(
 			BuiltInRegistries.ITEM,
 			Identifier.fromNamespaceAndPath(MOD_ID, "reward_treat_pouch"),
 			new RewardTreatPouchItem(new Item.Properties().durability(64).setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(MOD_ID, "reward_treat_pouch"))))
 	);
-
-	private static final Codec<List<Either<TagKey<Block>, ResourceKey<Block>>>> CAN_INTERACT_COMPONENT_CODEC = Codec.withAlternative(
-			new ListCodec<>(new EitherCodec<>(TagKey.hashedCodec(Registries.BLOCK), ResourceKey.codec(Registries.BLOCK)), 0, 1024),
-			Codec.of(Encoder.error("deprecated"), new ListCodec<>(Identifier.CODEC, 0, 65535).map((x) -> {
-				List<Either<TagKey<Block>, ResourceKey<Block>>> ls = new ArrayList<>(x.size());
-				for (Identifier id : x) {
-					ls.add(Either.right(ResourceKey.create(Registries.BLOCK, id)));
-				}
-				return ls;
-			}))
-	);
-	public static final DataComponentType<List<Either<TagKey<Block>, ResourceKey<Block>>>> CAN_INTERACT_COMPONENT_TYPE = Registry.register(
-			BuiltInRegistries.DATA_COMPONENT_TYPE,
-			Identifier.fromNamespaceAndPath(MOD_ID, "can_interact_component"),
-			DataComponentType.<List<Either<TagKey<Block>, ResourceKey<Block>>>>builder().persistent(CAN_INTERACT_COMPONENT_CODEC).build());
-
-	private static final Codec<List<Either<TagKey<Item>, ResourceKey<Item>>>> HELD_ITEMS_COMPONENT_CODEC = new ListCodec<>(
-			new EitherCodec<>(TagKey.hashedCodec(Registries.ITEM), ResourceKey.codec(Registries.ITEM)), 0, 65535);
-	public static final DataComponentType<List<Either<TagKey<Item>, ResourceKey<Item>>>> HELD_ITEMS_COMPONENT_TYPE = Registry.register(
-			BuiltInRegistries.DATA_COMPONENT_TYPE,
-			Identifier.fromNamespaceAndPath(MOD_ID, "held_items_component"),
-			DataComponentType.<List<Either<TagKey<Item>, ResourceKey<Item>>>>builder().persistent(HELD_ITEMS_COMPONENT_CODEC).build());
 
 	public static final Holder<Attribute> ATTR_CLICKER_DISTANCE = Registry.registerForHolder(
 			BuiltInRegistries.ATTRIBUTE, Identifier.fromNamespaceAndPath(MOD_ID, "clicker_distance"),
@@ -192,7 +182,6 @@ public class PlayerCollarsMod implements ModInitializer {
 	public static final DyeColor[] PAWS_DYE_COLORS = new DyeColor[]{DyeColor.WHITE, DyeColor.LIGHT_GRAY,
 			DyeColor.GRAY, DyeColor.BLACK, DyeColor.BLUE, DyeColor.RED, DyeColor.PURPLE};
 	public static final PawsItem[] PAWS_ITEMS = new PawsItem[PAWS_DYE_COLORS.length];
-	public static final TagKey<Block> PAWS_ALLOW_INTERACT = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(MOD_ID, "paws_allow_interact"));
 	public static final TagKey<Item> PAWS_TAG = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(MOD_ID, "paws"));
 	public static final FootPawsItem[] FOOT_PAWS_ITEMS = new FootPawsItem[PAWS_DYE_COLORS.length];
 	public static final TagKey<Item> FOOT_PAWS_TAG = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(MOD_ID, "foot_paws"));
@@ -201,12 +190,6 @@ public class PlayerCollarsMod implements ModInitializer {
 	public static final Item[] DOG_BOWL_ITEMS = new Item[DyeColor.values().length];
 	public static final BlockEntityType<DogBowlBlock.DogBowlBlockEntity> DOG_BOWL_BLOCK_ENTITY;
 	public static final CreativeModeTab GROUP;
-	public static final ExtendedMenuType<PawsConfigScreenHandler<Block>, List<Either<TagKey<Block>, ResourceKey<Block>>>> PAWS_BLOCK_CONFIG_SCREEN_HANDLER = new ExtendedMenuType<>(
-			PawsConfigScreenHandler.PawsBlockConfigScreenHandler::new, ByteBufCodecs.fromCodec(CAN_INTERACT_COMPONENT_CODEC)
-	);
-	public static final ExtendedMenuType<PawsConfigScreenHandler<Item>, List<Either<TagKey<Item>, ResourceKey<Item>>>> PAWS_ITEM_CONFIG_SCREEN_HANDLER = new ExtendedMenuType<>(
-			PawsConfigScreenHandler.PawsItemConfigScreenHandler::new, ByteBufCodecs.fromCodec(HELD_ITEMS_COMPONENT_CODEC)
-	);
 
     static {
         for (DyeColor c : DyeColor.values()) {
@@ -247,8 +230,6 @@ public class PlayerCollarsMod implements ModInitializer {
                             entries.accept(INVISIBLE_FENCE_BLOCK_ITEM);
                         })).build());
 
-		Registry.register(BuiltInRegistries.MENU, Identifier.fromNamespaceAndPath(MOD_ID, "paws_block_config"), PAWS_BLOCK_CONFIG_SCREEN_HANDLER);
-		Registry.register(BuiltInRegistries.MENU, Identifier.fromNamespaceAndPath(MOD_ID, "paws_item_config"), PAWS_ITEM_CONFIG_SCREEN_HANDLER);
 	}
 
 	public static ItemStack filterStacksByOwner(Iterable<SlotEntryReference> stacks, UUID plr, UUID entity) {
@@ -329,10 +310,21 @@ public class PlayerCollarsMod implements ModInitializer {
 		ServerPlayNetworking.registerGlobalReceiver(PacketUpdateCollar.ID, PacketUpdateCollar::handle);
 		PayloadTypeRegistry.serverboundPlay().register(PacketStampDeed.ID, PacketStampDeed.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(PacketStampDeed.ID, PacketStampDeed::handle);
-		PayloadTypeRegistry.serverboundPlay().register(PacketOpenPawsConfig.ID, PacketOpenPawsConfig.CODEC);
-		ServerPlayNetworking.registerGlobalReceiver(PacketOpenPawsConfig.ID, PacketOpenPawsConfig::handle);
+		PayloadTypeRegistry.serverboundPlay().register(PacketTogglePetControl.ID, PacketTogglePetControl.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(PacketTogglePetControl.ID, PacketTogglePetControl::handle);
 
 		PayloadTypeRegistry.clientboundPlay().register(PacketLookAtLerped.ID, PacketLookAtLerped.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(PacketOpenPetControl.ID, PacketOpenPetControl.CODEC);
+
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			if (server.getTickCount() % 10 != 0) return;
+			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+				if (PetControlHelper.isVisionObscured(player)) {
+					player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 60, 0, false, false, false));
+				}
+			}
+		});
+
 		for (int i = 0; i < PAWS_DYE_COLORS.length; i++) {
 			DyeColor c = PAWS_DYE_COLORS[i];
 			ResourceKey<Item> itemKey = PawsItem.getRegistryKey(c);
@@ -430,18 +422,6 @@ public class PlayerCollarsMod implements ModInitializer {
 					player.sendOverlayMessage(Component.literal("Paws can't feed themselves by hand.").withStyle(ChatFormatting.RED));
 				}
 				return InteractionResult.FAIL;
-			}
-
-			if (stack.has(DataComponents.FOOD)) {
-				for (ItemStack collarStack : EquippedTrinkets.getEquipped(player, (x) -> x.is(PlayerCollarsMod.COLLAR_TAG))) {
-					if (collarStack.getOrDefault(PlayerCollarsMod.DIET_CONTROL_COMPONENT_TYPE, false)) {
-						if (!world.isClientSide()) {
-							player.sendOverlayMessage(Component.literal("You can only eat from your bowl or be hand-fed!").withStyle(ChatFormatting.RED));
-						}
-						// This firmly stops the item from being used!
-						return InteractionResult.FAIL;
-					}
-				}
 			}
 			return InteractionResult.PASS;
 		});
